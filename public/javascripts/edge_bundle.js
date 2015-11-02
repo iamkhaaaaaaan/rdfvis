@@ -25,7 +25,7 @@ var diameter = width/2-margin,
 
     var line = d3.svg.line.radial()
             .interpolate("bundle")
-            .tension(.3)
+            .tension(.6)
             .radius(function(d) { return d.y; })
             .angle(function(d) { return d.x / 180 * Math.PI; });
 
@@ -79,23 +79,21 @@ var diameter = width/2-margin,
       }
     }
 
-    //change to async later
+    //async ajax call. tried non-async before. holy guac.
     function getRDF(uri){
       $.ajax({
         url: 'http://rdf-translator.appspot.com/convert/detect/json-ld/'+uri,
         type: 'GET',
-        // data: 'twitterUsername=jquery4u',
         success: function(data) {
       	//called when successful
-      	// $('#ajaxphp-results').html(data);
-          findRoot(data["@graph"]);
-          // root = "aglsterms:";
-          draw(data["@graph"]);
           console.log(data);
+          findRoot(data["@graph"]);
+          draw(data["@graph"]);
+
         },
         error: function(e) {
       	//called when there is an error
-      	//console.log(e.message);
+      	console.log(e);
         }
       });
       // var xhr = new XMLHttpRequest();
@@ -227,9 +225,9 @@ function draw(rGraph){
                     mouseovered(d);
 //                    tip.show();
                 })
-                // .on("mouseout", function(d){
-                //     mouseouted(d);
-                // })
+                .on("mouseout", function(d){
+                    mouseouted(d);
+                })
                 .on("mousedown", function(d){
                     rotate(d, create_tool_tip);
                     highlight_data(d);
@@ -489,7 +487,6 @@ function draw(rGraph){
                 if (type == "owl:Class" || type == "rdfs:Class") {
                     if(!isInArray(node, map[root].children)) {
                         node.parent = map[root];//chnage to root function later
-                        // console.log(node);
                         node.parent.children.push(node);
                         return node;
                     }
@@ -499,16 +496,6 @@ function draw(rGraph){
                 if (!(type in map)) {
 
 
-                  // if(type !== "owl:Class" && type !== "rdfs:Class"){
-                  //   console.log(node);
-                  //   return node;
-                  // }
-
-                  // if(node["rdfs:domain"] !== undefined){
-                  //   console.log(node);
-                  // }else if(node["rdfs:range"]!==undefined){
-                  //   console.log(node);
-                  // }
 
                   node.parent = map["properties"];
                   node.parent.children.push(node);
@@ -621,30 +608,30 @@ function draw(rGraph){
                   l.source =   map[d["@id"]];
                   l.target =   map[d["owl:disjointWith"]];
                   if(link_object_empty(l)){
-                    link.push(l);
+                    links.push(l);
                   }
                 }
             }
 
-          // if(d["rdfs:subClassOf"] !== undefined){
-          //   if(Array.isArray(d["rdfs:subClassOf"])){
-          //     d["rdfs:subClassOf"].forEach(function(x){
-          //       var l = {};
-          //       l.source = map[d["@id"]];//source is current node
-          //       l.target = map[x["@id"]];//target is node in subclassof array
-          //       if(link_object_empty(l)){
-          //         links.push(l);
-          //       }
-          //     });
-          //   }else{
-          //     var l ={};
-          //     l.source =   map[d["@id"]];
-          //     l.target =   map[d["rdfs:subClassOf"]];
-          //     if(link_object_empty(l)){
-          //       link.push(l);
-          //     }
-          //   }
-          // }
+            if(d["rdfs:range"]!==undefined){
+              if(Array.isArray(d["rdfs:range"])){//pretty much always will be array, but this is just in case
+                d["rdfs:range"].forEach(function(x){
+                    var l = {};
+                    l.source = map[d["@id"]];
+                    l.target = map[x["@id"]];
+                    if(link_object_empty(l)){
+                      links.push(l);
+                    }
+                });
+              }else{
+                var l = {};
+                l.source = map[d["@id"]];
+                l.target = map[d["rdfs:range"]["@id"]];
+                if(link_object_empty(l)){
+                  links.push(l);
+                }
+              }
+            }
 
           //  if(d["rdfs:range"]!==undefined){
           //     l = {source: map[d["rdfs:range"]["@id"]], target: map[d["@id"]]};
