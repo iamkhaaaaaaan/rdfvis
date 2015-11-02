@@ -1,5 +1,7 @@
 
-var root = "http://purl.org/goodrelations/v1";//temp, will change to function later
+// var root = "http://purl.org/goodrelations/v1";//temp, will change to function later
+// var root = "http://www.w3.org/ns/prov-links#";
+var root;
 var margin = 50;
 var width = $(window).width()-margin,
             height = $(window).height()-margin;
@@ -7,16 +9,12 @@ var width = $(window).width()-margin,
 var origin_x = 0;
 var max_label_length_l=0;
 var max_label_length_r=0;
-var cursorX;
-var cursorY;
-var clicked;
-var base_x;
-var base_y;
+var cursorX, cursorY, clicked, base_x, base_y, uriInput;
 var animation_duration = 3000;
-    var diameter = width/2-margin,
-            radius = diameter / 2,
-            innerRadius = radius - 120;
-            
+var diameter = width/2-margin,
+        radius = diameter / 2,
+        innerRadius = radius - 120;
+
 
     var cluster = d3.layout.cluster()
             .size([360, innerRadius])
@@ -24,13 +22,6 @@ var animation_duration = 3000;
             .value(function(d) { return d.size; });
 
     var bundle = d3.layout.bundle()
-
-//    var tip = d3.tip()
-//            .attr('class', 'd3-tip')
-//            .offset([-10, 0])
-//            .html(function(d) {
-//                return "<strong>Frequency:</strong> <span style='color:red'>" + d["@id"] + "</span>";
-//            });
 
     var line = d3.svg.line.radial()
             .interpolate("bundle")
@@ -61,25 +52,90 @@ var animation_duration = 3000;
     // function checkCursor(){
     //     console.log("Cursor at: " + cursorX + ", " + cursorY);
     // }
-    draw();
+    // draw();
+
+    $("#uriSubmit").click(function(){
+         uriInput = $("#uriInput").val();
+         if(uriInput !== undefined && uriInput !== ""){
+           $("#uriForm").fadeOut();
+          //  var l = '<div class="loader">Loading...</div>';
+          //  $(l).appendTo(".loadingBar");
+           getRDF(uriInput);
+           console.log(uriInput);
+         }
+    });
 
 
 
-function draw(){
+    function findRoot(graph){
+      graph.forEach(function (d){
+        if(d["@type"]==="owl:Ontology"){
+          root = d["@id"];
+        }
+        // console.log(d["@type"]);
+      });
+      if(root === undefined){
+        root = "aglsterms:";
+      }
+    }
+
+    //change to async later
+    function getRDF(uri){
+      $.ajax({
+        url: 'http://rdf-translator.appspot.com/convert/detect/json-ld/'+uri,
+        type: 'GET',
+        // data: 'twitterUsername=jquery4u',
+        success: function(data) {
+      	//called when successful
+      	// $('#ajaxphp-results').html(data);
+          findRoot(data["@graph"]);
+          // root = "aglsterms:";
+          draw(data["@graph"]);
+          console.log(data);
+        },
+        error: function(e) {
+      	//called when there is an error
+      	//console.log(e.message);
+        }
+      });
+      // var xhr = new XMLHttpRequest();
+      // // xhr.open("GET", "http://rdf-translator.appspot.com/convert/detect/json-ld/http://www.w3.org/ns/prov", false);
+      // xhr.open("GET", "http://rdf-translator.appspot.com/convert/detect/json-ld/"+uri, false);
+      // xhr.send();
+      //
+      // console.log(xhr.status);
+      // console.log(xhr.statusText);
+      // console.log(xhr);
+      // // console.log(JSON.parse(xhr.response));
+      // var responseGraph = JSON.parse(xhr.response);
+      // console.log(responseGraph);
+      // console.log(responseGraph["@graph"]);
+      //
+      // draw(responseGraph["@graph"]);
+    }
+
+
+    // draw(responseGraph["@graph"]);
+
+
+
+function draw(rGraph){
 
     d3.json("jsondata/jsonld5.jsld", function(graph) {
 //        if (error) throw error;
 
-        var n = graph["@graph"];
+        // var n = graph["@graph"];
+        var n = rGraph;
         var tree = {};
 
         var t = findnodes(tree, n);
-        var lt = get_links(graph["@graph"]);
+        var lt = get_links(n);
+
+        console.log(lt);
+        console.log(t);
 
         var nodes = cluster.nodes(t), links = cluster.links(nodes);
-//        console.log(links);
         var d = links.concat(lt);
-//        console.log(d);
 
         link = link
                 .data(bundle(d))
@@ -96,19 +152,19 @@ function draw(){
                 .attr("dy", ".31em")
                 .each(function(d){d.clicked = 0;})
                 .each(function(d) { d.angle = (d.x - origin_x+270+360)%360; })//add angle property to object
-                .attr("transform", function(d) { 
+                .attr("transform", function(d) {
 
                     // console.log(d.x+90);
-                    return "rotate(" + (d.x - 90) + ")translate(" + (d.y + 8) + ",0)" + (d.x < 180 ? "" : "rotate(180)"); 
+                    return "rotate(" + (d.x - 90) + ")translate(" + (d.y + 8) + ",0)" + (d.x < 180 ? "" : "rotate(180)");
 
                 })
                 .style("text-anchor", function(d) {
-                    
+
                     if(d.x < 180){d.side = "right";}else{d.side = "left";}
 
                     return d.x < 180 ? "start" : "end";
                 })
-                .text(function(d) { 
+                .text(function(d) {
 
                     //probs put this somewhere else later
                     if(d["@id"]==="http://purl.org/goodrelations/v1"){
@@ -116,14 +172,14 @@ function draw(){
                         base_x = d.x;
                         base_y = d.y;
                     }
-                    
+
 
                     if(d.children!==undefined){
                         var t;
                         if(d.label !== undefined){
                             t = d.label["en"];
                         }else{
-                            t = d["@id"]; 
+                            t = d["@id"];
                         }
 
                         if(t!==undefined){
@@ -141,19 +197,19 @@ function draw(){
 
                         var t;
 
-                        if(d.label !== undefined){ 
+                        if(d.label !== undefined){
                             t= d.label["en"];
-                        }else{ 
+                        }else{
                             t= d["@id"];
-                        }                       
+                        }
 
                         return t;
                     }
-                    // return d["@id"]; 
+                    // return d["@id"];
                 })
-                .each(function (d){ 
-                    
-                    // console.log(this.getBBox().width);                     
+                .each(function (d){
+
+                    // console.log(this.getBBox().width);
                     var x = this.getBBox().width;
                     if(d.side==="right"){
                         if(x>max_label_length_r){
@@ -162,14 +218,14 @@ function draw(){
                     }else{
                         if(x > max_label_length_l){
                             max_label_length_l = x;
-                            
+
                         }
                     }
                     // console.log(max_label_length_l);
                 })
                 .on("mouseover", function(d){
                     mouseovered(d);
-//                    tip.show();       
+//                    tip.show();
                 })
                 // .on("mouseout", function(d){
                 //     mouseouted(d);
@@ -213,7 +269,7 @@ function draw(){
     function create_tool_tip(d){
         ///textboox source http://chimera.labs.oreilly.com/books/1230000000345/ch10.html#_html_div_tooltips
             //Get this bar's x/y values, then augment for the tooltip
-            d3.select("#tooltip").remove();            
+            d3.select("#tooltip").remove();
 
             var p_div_height = document.getElementById('dia_1').clientHeight;
             var p_div_width =  document.getElementById('dia_1').clientWidth;
@@ -221,12 +277,12 @@ function draw(){
             var page_width = $(window).width();
             var page_height = $(window).height();
             // console.log(page_width);
-            
+
             console.log(d);
             var xPosition = cursorX;//parseFloat(d3.select(this).attr("x")) + xScale.rangeBand() / 2;
             var yPosition = cursorY;//parseFloat(d3.select(this).attr("y")) / 2 + h / 2;
             var props = [];
-            var ls = " "; 
+            var ls = " ";
             var comment;
 
             if(Array.isArray(d["owl:disjointWith"])){
@@ -237,13 +293,12 @@ function draw(){
                 comment = d["rdfs:comment"]["@value"];
             }else{
                 comment = "...";
-            } 
+            }
             //Update the tooltip position and value
 
             console.log(cursorX + ", " + cursorY);
 
             for (var prop in d){
-
                 // console.log(prop);
                 if(d.hasOwnProperty(prop)){
 
@@ -262,30 +317,27 @@ function draw(){
                             for(var p in d[prop]){
                                if(d[prop].hasOwnProperty(p)){
                                 list_props += d[prop][p];
-                               } 
+                               }
                             }
-                        }else{                           
+                        }else{
 
                             list_props = d[prop];
-                                                        
-                        }   
 
-
-
+                        }
                         var t = '<li class="list-group-item"><h5>'+prop+'</h4>'+list_props+'</li>';
                         ls += t;
                         props.push(prop);
-                    }  
+                    }
                 }
             }
 
             // console.log(ls);
 
-            if(comment.length > 100){
-                var s = comment.substring(0, 100);
-                s += "..."
-                comment = s;
-            }
+              if(comment !== undefined && comment.length > 100){
+                  var s = comment.substring(0, 100);
+                  s += "..."
+                  comment = s;
+              }
 
             var tooltip = '<div id="tooltip" class="hidden"><div class="page-header"><h3>' +d["@id"]+ '</h3><div class="info"><p><small>'+comment+'</small></p></div><div class="nodeinfo"><ul class="list-group">'+ls+'</ul></div>';
 
@@ -303,7 +355,7 @@ function draw(){
             if(d.side === "right"){
                 div_pos = page_width - (page_width/3);
             }else{
-                
+
                 div_pos = page_width/6;//TEMP
             }
 
@@ -316,7 +368,7 @@ function draw(){
 
 
               //Show the tooltip
-            d3.select("#tooltip").classed("hidden", false);            
+            d3.select("#tooltip").classed("hidden", false);
             $("#tooltip").hide().fadeIn(animation_duration);
 
 
@@ -324,29 +376,29 @@ function draw(){
 
 
     function mouseovered(d) {
-        
-        
+
+
         // rotate();
         // var x = d3.select(this);
 
         // console.log(d.angle);
         // console.log(d.side);
-        
+
              node
                         .each(function(n) { n.target = n.source = false; });
-                        
+
                 link
-                        .classed("link--target", function(l) { 
+                        .classed("link--target", function(l) {
                             if (l.target === d){
-                                // console.log(l.source);                        
-                                return l.source.source = true; 
-                            }                    
+                                // console.log(l.source);
+                                return l.source.source = true;
+                            }
                         })
-                        .classed("link--source", function(l) { 
+                        .classed("link--source", function(l) {
                             if (l.source === d){
                                 // console.log(l.target);
                                 // create_tool_tip_with_title(l.target["@id"]);
-                                return l.target.target = true; 
+                                return l.target.target = true;
                              }
                         })
                         .classed("link--inactive", function (l){
@@ -355,7 +407,7 @@ function draw(){
                             }
                         })
                         .filter(function(l) {
-                            return l.target === d || l.source === d; 
+                            return l.target === d || l.source === d;
                         })
                         .each(function() { this.parentNode.appendChild(this); });
 
@@ -370,10 +422,10 @@ function draw(){
                                 // console.log(n);
                                 return n = true;
                             }
-                        }); 
-        
-        
-                                  
+                        });
+
+
+
     }
 
     function mouseouted(d) {
@@ -382,7 +434,7 @@ function draw(){
 
             //Hide the tooltip
             // d3.select("#tooltip").remove();
-            
+
                 link
                     .classed("link--target", false)
                     .classed("link--source", false)
@@ -392,10 +444,10 @@ function draw(){
                     .classed("node--target", false)
                     .classed("node--source", false)
                     .classed("node--inactive", false);
-            
-                
-            
-        
+
+
+
+
     }
 
     function findnodes(tree,nodes){//creates hierarchical tree from jsonld nodes
@@ -411,8 +463,9 @@ function draw(){
                 map[d["@id"]] = d;
             }
         });
-        map["properties"] = {"@id": "properties", children: [], parent: root};//populate and pepare map
-
+        // console.log(map);
+        map["properties"] = {"@id": "properties", children: [], parent: map[root]};//populate and pepare map
+        map[root].children.push(map["properties"]);
 //        console.log(map);
 
         function isInArray(value, array) {
@@ -426,34 +479,62 @@ function draw(){
                 node = map[name];
                 type = node["@type"];
 
-                if(type == "owl:Ontology"){
+                //if type is ontology
+                if(type == "owl:Ontology" || node["@id"]==root){
                     node.parent = null;
+                    // console.log(node);
                     return node;
                 }//root
 
-                if (type == "owl:Class") {
+                if (type == "owl:Class" || type == "rdfs:Class") {
                     if(!isInArray(node, map[root].children)) {
                         node.parent = map[root];//chnage to root function later
+                        // console.log(node);
                         node.parent.children.push(node);
                         return node;
                     }
-//                    return;
                 }//if type class, parent = root
 
+                //if type is property
                 if (!(type in map)) {
-                    if (node["rdfs:domain"] !== undefined) {
-                        node.parent = map[node["rdfs:domain"]["@id"]];
 
-                        node.parent.children.push(node);
-                        return node;
-                    } else {
-                        node.parent = map["properties"];
-                        node.parent.children.push(node);
-                        return node;
-                    }//if type != map, use domain as parent
+
+                  // if(type !== "owl:Class" && type !== "rdfs:Class"){
+                  //   console.log(node);
+                  //   return node;
+                  // }
+
+                  // if(node["rdfs:domain"] !== undefined){
+                  //   console.log(node);
+                  // }else if(node["rdfs:range"]!==undefined){
+                  //   console.log(node);
+                  // }
+
+                  node.parent = map["properties"];
+                  node.parent.children.push(node);
+                  console.log(map["properties"]);
+                  return node;
+
+                  // console.log(node);
+                    // if (node["rdfs:domain"] !== undefined) {
+                    //     if(!(node["rdfs:domain"]["@id"] in map)){
+                    //       // console.log(node["rdfs:domain"]);
+                    //       map[node["rdfs:domain"]["@id"]] = {"@id": node["rdfs:domain"]["@id"], children: []};
+                    //     }
+                    //     node.parent = map[node["rdfs:domain"]["@id"]];
+                    //     node.parent.children.push(node);
+                    //     return node;
+                    // } else {
+                    //     node.parent = map["properties"];
+                    //     node.parent.children.push(node);
+                    //     return node;
+                    // }//if type != map, use domain as parent
+
                 } else {
-                    if (node["@id"].length) {
-                        if (type != "owl:Ontology") {
+                    // console.log(node);
+                    if (node["@id"] !== undefined) {
+                        if (type != "owl:Ontology" || node["@id"] != root) {
+                            // console.log(node);
                             node.parent = find_children(type);
                             node.parent.children.push(node);
                         }
@@ -463,11 +544,13 @@ function draw(){
             }
             return node;
         }
+
         if(nodes.length){
             nodes.forEach(function(d){
                 find_children(d["@id"], d);
             });//iterate over every node
         }
+        console.log(map);
         return map[root];
     }
 
@@ -493,9 +576,9 @@ function draw(){
                 links.push({source: map[d["@id"]], target: map[d["gr:hasPrevious"]["@id"]]});
                 links.push({source: map[d["@id"]], target: map["gr:hasPrevious"]})
             }
-            if(d.subClassOf!== undefined){
+            if(d["rdfs:subClassOf"]!== undefined){
                 if(Array.isArray(d.subClassOf)){
-                    d.subClassOf.forEach(function(x){
+                    d["rdfs:subClassOf"].forEach(function(x){
                         var l = {};
                         l.source = map[d["@id"]];
                         l.target = map[x["@id"]];
@@ -507,7 +590,7 @@ function draw(){
                 }else{
                     var l = {};
                     l.source = map[d["@id"]];
-                    l.target = map[d.subClassOf["@id"]];
+                    l.target = map[d["rdfs:subClassOf"]["@id"]];
                     if(link_object_empty(l)){
                         links.push(l);
                     }
@@ -533,26 +616,55 @@ function draw(){
                             links.push(l);
                         }
                     });
+                }else{
+                  var l ={};
+                  l.source =   map[d["@id"]];
+                  l.target =   map[d["owl:disjointWith"]];
+                  if(link_object_empty(l)){
+                    link.push(l);
+                  }
                 }
             }
 
-//            if(d["rdfs:range"]!==undefined){
-//               l = {source: map[d["rdfs:range"]["@id"]], target: map[d["@id"]]};
-//            }
-//            console.log(l);
-//            if(l.source !== undefined && l.target !== undefined){
-//                links.push(l);
-//            }
+          // if(d["rdfs:subClassOf"] !== undefined){
+          //   if(Array.isArray(d["rdfs:subClassOf"])){
+          //     d["rdfs:subClassOf"].forEach(function(x){
+          //       var l = {};
+          //       l.source = map[d["@id"]];//source is current node
+          //       l.target = map[x["@id"]];//target is node in subclassof array
+          //       if(link_object_empty(l)){
+          //         links.push(l);
+          //       }
+          //     });
+          //   }else{
+          //     var l ={};
+          //     l.source =   map[d["@id"]];
+          //     l.target =   map[d["rdfs:subClassOf"]];
+          //     if(link_object_empty(l)){
+          //       link.push(l);
+          //     }
+          //   }
+          // }
+
+          //  if(d["rdfs:range"]!==undefined){
+          //     l = {source: map[d["rdfs:range"]["@id"]], target: map[d["@id"]]};
+          //  }
+          //  console.log(l);
+          //  if(l.source !== undefined && l.target !== undefined){
+          //      links.push(l);
+          //  }
 
         });
 
-        function link_object_empty(l){
+        function link_object_empty(l){//checks if both source and target are not empty
             if(l.source !== undefined && l.target !== undefined){
                 return true;
             }else{
                 return false;
             }
         }
+
+
         return links;
 
     }
@@ -576,16 +688,16 @@ function draw(){
             rotation_amount = 180-d_angle; //for nodes on left side
             translate_amount = translate_amount * 1;//not needed, here just to make me feel better
         }
-        svg 
+        svg
             .transition()
             .duration(animation_duration)
-            .attr("transform", "translate(" + translate_amount + "," + 0 + "),rotate("+rotation_amount+") ")            
+            .attr("transform", "translate(" + translate_amount + "," + 0 + "),rotate("+rotation_amount+") ")
             .each("end", callback(d));
-        
+
 
         // callback(d);
             // .transition()
-            // .duration(2000)            
+            // .duration(2000)
             // .attr("transform", "rotate("+(rotation_amount)+")");
         // callback(d);
     }
@@ -596,19 +708,19 @@ function draw(){
 
         node
                 .each(function(n) { n.target = n.source = false; });
-                
+
         link
-                .classed("link--target", function(l) { 
+                .classed("link--target", function(l) {
                     if (l.target === d){
-                        // console.log(l.source);                        
-                        return l.source.source = true; 
-                    }                    
+                        // console.log(l.source);
+                        return l.source.source = true;
+                    }
                 })
-                .classed("link--source", function(l) { 
+                .classed("link--source", function(l) {
                     if (l.source === d){
                         // console.log(l.target);
                         // create_tool_tip_with_title(l.target["@id"]);
-                        return l.target.target = true; 
+                        return l.target.target = true;
                      }
                 })
                 .classed("link--inactive", function (l){
@@ -617,7 +729,7 @@ function draw(){
                     }
                 })
                 .filter(function(l) {
-                    return l.target === d || l.source === d; 
+                    return l.target === d || l.source === d;
                 })
                 .each(function() { this.parentNode.appendChild(this); });
 
@@ -639,7 +751,7 @@ function draw(){
 
     function animationtest (d){
         console.log("animating");
-        
+
         svg.transition()
             .duration(2000)
             .attr("transform", "translate(50, 50)");
