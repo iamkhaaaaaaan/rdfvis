@@ -56,6 +56,7 @@ function isUrl(s) {
     //reload page of clicking search
     $("#searchLink").click(function(){
         window.location.reload(true);
+        $(".errors").empty();
     });
 
     //function to find roo
@@ -142,8 +143,8 @@ function draw(rGraph){
     // d3.json("jsondata/jsonld5.jsld", function(graph) {
         var n = rGraph;
         var tree = {};
-        var t = findnodes(tree, n);
-        var lt = get_links(n);
+        var t = findNodes(tree, n);
+        var lt = getLinks(n);
 
         var nodes = cluster.nodes(t), links = cluster.links(nodes);
         var d = links.concat(lt);
@@ -223,17 +224,17 @@ function draw(rGraph){
                     mouseouted(d);
                 })
                 .on("mousedown", function(d){
-                    rotate(d, create_tool_tip);
-                    highlight_data(d);
+                    rotate(d, createToolTip);
+                    highlightData(d);
                 });
 }
 
     d3.select(self.frameElement).style("height", diameter + "px");
 
-    function create_tool_tip_with_title(title){//used to create tooltips for source/targets (unused for now)
+    function createToolTipWithTitle(title){//used to create tooltips for source/targets (unused for now)
         d = {};
         d["@id"] = title;
-        create_tool_tip(d);
+        createToolTip(d);
     }
 
     //for testing
@@ -249,13 +250,13 @@ function draw(rGraph){
       }
 
       //creates info div
-    function create_tool_tip(d){
+    function createToolTip(d){
         ///textboox source http://chimera.labs.oreilly.com/books/1230000000345/ch10.html#_html_div_tooltips
             //Get this bar's x/y values, then augment for the tooltip
             d3.select("#tooltip").remove();
 
             var p_div_height = document.getElementById('dia_1').clientHeight;
-            var p_div_width =  document.getElementById('dia_1').clientWidth;
+            var pDivWidth =  document.getElementById('dia_1').clientWidth;
 
             var page_width = $(window).width();
             var page_height = $(window).height();
@@ -401,7 +402,7 @@ function draw(rGraph){
                       }
 
     //creates heirarchy
-    function findnodes(tree,nodes){//creates hierarchical tree from jsonld nodes
+    function findNodes(tree,nodes){//creates hierarchical tree from jsonld nodes
 
         var map = []; //declare map
 
@@ -424,7 +425,7 @@ function draw(rGraph){
             return array.indexOf(value) > -1;
         }
 
-        function find_children(name, n){//recursive children finder function
+        function findChildren(name, n){//recursive children finder function
             var node = map[name], type;
 
             if(node!==undefined) {
@@ -454,7 +455,7 @@ function draw(rGraph){
                 } else {
                     if (node["@id"] !== undefined) {
                         if (type != "owl:Ontology" || node["@id"] != root) {
-                            node.parent = find_children(type);
+                            node.parent = findChildren(type);
                             node.parent.children.push(node);
                         }
                     }
@@ -466,14 +467,14 @@ function draw(rGraph){
         //initiates recursion to find children
         if(nodes.length){
             nodes.forEach(function(d){
-                find_children(d["@id"], d);
+                findChildren(d["@id"], d);
             });//iterate over every node
         }
         return map[root];
     }
 
     //finds links between nodes
-    function get_links(nodes){
+    function getLinks(nodes){
         var map = [], links = [];
         nodes.forEach(function(d){
             if(d["@id"]!== undefined){
@@ -501,7 +502,7 @@ function draw(rGraph){
                         l.source = map[d["@id"]];
                         l.target = map[x["@id"]];
 
-                        if(link_object_empty(l)){
+                        if(linkObjectEmpty(l)){
                             links.push(l);
                         }
                     });
@@ -509,7 +510,7 @@ function draw(rGraph){
                     var l = {};
                     l.source = map[d["@id"]];
                     l.target = map[d["rdfs:subClassOf"]["@id"]];
-                    if(link_object_empty(l)){
+                    if(linkObjectEmpty(l)){
                         links.push(l);
                     }
                 }
@@ -519,7 +520,7 @@ function draw(rGraph){
                 var l = {};
                 l.source = map[d["@id"]];
                 l.target = map[d["owl:equivalentClass"]["@id"]];
-                if(link_object_empty(l)){
+                if(linkObjectEmpty(l)){
                     links.push(l);
                 }
             }
@@ -530,7 +531,7 @@ function draw(rGraph){
                        var l = {};
                         l.source = map[d["@id"]];
                         l.target = map[x["@id"]];
-                        if(link_object_empty(l)){
+                        if(linkObjectEmpty(l)){
                             links.push(l);
                         }
                     });
@@ -538,7 +539,7 @@ function draw(rGraph){
                   var l ={};
                   l.source =   map[d["@id"]];
                   l.target =   map[d["owl:disjointWith"]];
-                  if(link_object_empty(l)){
+                  if(linkObjectEmpty(l)){
                     links.push(l);
                   }
                 }
@@ -550,7 +551,7 @@ function draw(rGraph){
                     var l = {};
                     l.source = map[d["@id"]];
                     l.target = map[x["@id"]];
-                    if(link_object_empty(l)){
+                    if(linkObjectEmpty(l)){
                       links.push(l);
                     }
                 });
@@ -558,7 +559,7 @@ function draw(rGraph){
                 var l = {};
                 l.source = map[d["@id"]];
                 l.target = map[d["rdfs:range"]["@id"]];
-                if(link_object_empty(l)){
+                if(linkObjectEmpty(l)){
                   links.push(l);
                 }
               }
@@ -566,7 +567,7 @@ function draw(rGraph){
 
         });
 
-        function link_object_empty(l){//checks if both source and target are not empty
+        function linkObjectEmpty(l){//checks if both source and target are not empty
             if(l.source !== undefined && l.target !== undefined){
                 return true;
             }else{
@@ -581,26 +582,26 @@ function draw(rGraph){
     //rotates diagram, callback on end of run
     function rotate(d, callback) {
         clicked = 1;
-        var p_div_width =  document.getElementById('dia_1').clientWidth;
-        var d_angle = d.angle;
-        var rotation_amount;
-        var translate_amount = p_div_width/3;
+        var pDivWidth =  document.getElementById('dia_1').clientWidth;
+        var dAngle = d.angle;
+        var rotationAmount;
+        var translateAmount = pDivWidth/3;
 
         if(d.side ==="right"){
-            rotation_amount = d_angle * -1; // for nodes on right side, convert to negative to rotate the right way
-            translate_amount = translate_amount * -1;
+            rotationAmount = dAngle * -1; // for nodes on right side, convert to negative to rotate the right way
+            translateAmount = translateAmount * -1;
         }else{
-            rotation_amount = 180-d_angle; //for nodes on left side
-            translate_amount = translate_amount * 1;//not needed, here just to make me feel better
+            rotationAmount = 180-dAngle; //for nodes on left side
+            translateAmount = translateAmount * 1;//not needed, here just to make me feel better
         }
         svg
             .transition()
             .duration(animation_duration)
-            .attr("transform", "translate(" + translate_amount + "," + 0 + "),rotate("+rotation_amount+") ")
+            .attr("transform", "translate(" + translateAmount + "," + 0 + "),rotate("+rotationAmount+") ")
             .each("end", callback(d));
     }
 
-    function highlight_data(d){
+    function highlightData(d){
         node
                 .each(function(n) { n.target = n.source = false; });
 
