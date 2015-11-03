@@ -34,7 +34,7 @@ var link;//D3 RELATED VARIABLES
 
 function isUrl(s) {
    var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
-   return regexp.test(s);
+   return regexp.test(s); //regex to check if input is uri
 }
 
     //on uri submission
@@ -68,7 +68,8 @@ function isUrl(s) {
         // console.log(d["@type"]);
       });
       if(root === undefined){
-        throw 'NoRoot';
+        throw 'NoRoot';//temp
+        //maybe add a temp root to data array? eg root = uri
       }
     }
 
@@ -79,6 +80,7 @@ function isUrl(s) {
         type: 'GET',
         success: function(data) {
       	//called when successful
+        console.log(data);
           try{
             findRoot(data["@graph"]);
           }catch(err){
@@ -449,6 +451,8 @@ function draw(rGraph){
 
                 //if type is property
                 if (!(type in map)) {
+                  //TODO if type is array (aka multiple types)
+
                   node.parent = map["properties"];
                   node.parent.children.push(node);
                   return node;
