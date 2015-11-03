@@ -67,7 +67,7 @@ function isUrl(s) {
         // console.log(d["@type"]);
       });
       if(root === undefined){
-        //TODO
+        throw 'NoRoot';
       }
     }
 
@@ -78,12 +78,30 @@ function isUrl(s) {
         type: 'GET',
         success: function(data) {
       	//called when successful
-          console.log(data);
+          try{
+            findRoot(data["@graph"]);
+          }catch(err){
+            // if(err.name === 'NoRoot'){
+              var l = '<div class="alert alert-danger" role="alert">Unable to find root node in vocab</div>';
+              $(l).appendTo(".errors");
+            // }
+          }
 
-          findRoot(data["@graph"]);
-          draw(data["@graph"]);
-          $(".loadingBar").fadeOut("slow");
+          try{
+            draw(data["@graph"]);
+            $(".loadingBar").fadeOut("slow");
+          }catch(err){
+            console.log(err);
 
+            if(err.name === 'TypeError'){
+              console.log("Parsing Error");
+              var l = '<div class="alert alert-danger" role="alert">Error parsing vocab</div>';
+              $(l).appendTo(".errors");
+              $(".loadingBar").fadeOut();
+              $("#uriForm").fadeIn("slow");
+
+            }
+          }
         },
         error: function(e) {
           var l = '<div class="alert alert-danger" role="alert">Parsing Error!</div>';
@@ -396,8 +414,11 @@ function draw(rGraph){
                 map[d["@id"]] = d;
             }
         });
-        map["properties"] = {"@id": "properties", children: [], parent: map[root]};//populate and pepare map
-        map[root].children.push(map["properties"]);
+
+          map["properties"] = {"@id": "properties", children: [], parent: map[root]};//populate and pepare map
+          map[root].children.push(map["properties"]);
+
+
 
         function isInArray(value, array) {
             return array.indexOf(value) > -1;
