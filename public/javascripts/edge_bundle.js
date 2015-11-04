@@ -7,6 +7,7 @@ var root;
 var margin = 50;
 var width = $(window).width() - margin,
   height = $(window).height() - margin;
+var strokewidth = 3;
 
 var origin_x = 0;
 var max_label_length_l = 0;
@@ -22,7 +23,10 @@ var bundle;
 var line;
 var svg;
 var link; //D3 RELATED VARIABLES
-
+  var properties = ["rdfs:range", "rdfs:domain", "rdf:type", "rdfs:subClassOf", "rdfs:subPropertyOf", "rdfs:label", "rdfs:subPropertyOf", "rdfs:comment", "owl:equivalentClass", "rdfs:subClassOf", "owl:disjointWith", "owl:complementOf", "owl:unionOf", "owl:intersectionOf",  "owl:equivalentProperty", "owl:inverseOf", "owl:sameAs", "owl:differentFrom", "owl:AllDifferent"];
+  var colors = [];
+  var propertiesMinusPrefix = [];
+  var colorPairs = [];
 
 
 
@@ -30,6 +34,25 @@ document.onmousemove = function(e) {
   cursorX = e.pageX;
   cursorY = e.pageY;
 }
+
+//generates random collors for links
+function createCSSRules(){
+
+  properties.forEach(function(d){
+    var c = '#'+Math.floor(Math.random()*16777215).toString(16);
+    colors.push(c);
+  });
+
+  properties.forEach(function(d, i){
+    var n = d.substring(d.indexOf(":") + 1);
+    propertiesMinusPrefix.push(n);
+    var l = {prop: n, color: colors[i], propfull: d};
+    colorPairs.push(l);
+    createCSSSelector('.'+n, 'stroke:'+colors[i]+';stroke-width:'+strokewidth+'px;');
+  });
+}
+
+createCSSRules();
 
 function isUrl(s) {
   var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
@@ -67,8 +90,11 @@ function findRoot(graph) {
     // console.log(d["@type"]);
   });
   if (root === undefined) {
-    throw 'NoRoot'; //temp
+    // throw 'NoRoot'; //temp
     //maybe add a temp root to data array? eg root = uri
+    root = uriInput;
+    var l = {"@id": uriInput, children: []};
+    graph.push(l);
   }
 }
 
@@ -80,7 +106,7 @@ function getRDF(uri) {
     success: function(data) {
       //called when successful
       console.log(data);
-      s
+
       try {
         findRoot(data["@graph"]);
       } catch (err) {
@@ -97,6 +123,7 @@ function getRDF(uri) {
         console.log(err);
 
         if (err.name === 'TypeError') {
+          // console.log(err);
           console.log("Parsing Error");
           var l = '<div class="alert alert-danger" role="alert">Error parsing vocab</div>';
           $(l).appendTo(".errors");
@@ -156,6 +183,13 @@ function draw(rGraph) {
 
   var nodes = cluster.nodes(t),
     links = cluster.links(nodes);
+
+    nodes.forEach(function(d){
+      if(d["rdfs:domain"]!==undefined){
+        console.log(d);
+      }
+    })
+
   var d = links.concat(lt);
 
   link = link
@@ -268,6 +302,12 @@ function createtree(tree, tooltip, data) {
   }
 }
 
+function isArray(object)
+{
+    if (object.constructor === Array) return true;
+    else return false;
+}
+
 //creates info div
 function createToolTip(d) {
   ///textboox source http://chimera.labs.oreilly.com/books/1230000000345/ch10.html#_html_div_tooltips
@@ -373,22 +413,120 @@ function mouseovered(d) {
       n.target = n.source = false;
     });
 
+    colorPairs.forEach(function(x){
+      var propfull = x.propfull;
+      var color = x.color;
+      var propnoprefix = x.prop;
+
+      link.classed(propnoprefix, function(l){
+        if(d[propfull]!==undefined){
+            if(l.source["@id"] === d["@id"]){
+              // console.log(d);
+              if(l.target["@id"]===d[propfull]["@id"]){
+                console.log(propfull);
+                return l.target.target = true;
+              }
+            }
+          }
+      });
+    });
+
   link
-    .classed("link--target", function(l) {
-      if (l.target === d) {
-        return l.source.source = true;
-      }
-    })
-    .classed("link--source", function(l) {
-      if (l.source === d) {
-        return l.target.target = true;
-      }
-    })
-    .classed("link--inactive", function(l) {
-      if (l.source !== d && l.target !== d) {
-        return l = true;
-      }
-    })
+    // .classed("link--target", function(l) {
+    //   if (l.target === d) {
+    //     return l.source.source = true;
+    //   }
+    // })
+    // .classed("link--source", function(l) {
+    //   if (l.source === d) {
+    //     return l.target.target = true;
+    //   }
+    // })
+    // .classed("link--inactive", function(l) {
+    //   if (l.source !== d && l.target !== d) {
+    //     return l = true;
+    //   }
+    // })
+    // .classed("link--domain", function(l){
+    //   // console.log(l);+
+    //   if(d["rdfs:domain"]!==undefined){
+    //     if(l.source["@id"] === d["@id"]){
+    //       // console.log(d);
+    //       if(l.target["@id"]===d["rdfs:domain"]["@id"]){
+    //         console.log("DOMAIN");
+    //         return l.target.target = true;
+    //       }
+    //     }
+    //   }
+    // })
+    // .classed("link--range", function(l){
+    //   if(d["rdfs:range"]!==undefined){
+    //     if(l.source["@id"] === d["@id"]){
+    //       // console.log(d);
+    //       if(l.target["@id"]===d["rdfs:range"]["@id"]){
+    //         console.log("RANGE");
+    //         return l.target.target = true;
+    //       }
+    //     }
+    //   }
+    // })
+    // .classed("link--subClassOf", function(l){
+    //   if(d["rdfs:subClassOf"]!==undefined){//is subclass of not undefined
+    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
+    //         // console.log(d);
+    //       if(d["rdfs:subClassOf"][0]!==undefined){//if property is array
+    //         d["rdfs:subClassOf"].forEach(function(x){
+    //           if(l.target["@id"]===x["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //         });
+    //       }else{
+    //           if(l.target["@id"]===d["rdfs:subClassOf"]["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //       }
+    //     }
+    //   }
+    // })
+    // .classed("link--disjointWith", function(l){
+    //   if(d["owl:disjointWith"]!==undefined){//is subclass of not undefined
+    //
+    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
+    //       console.log("disjointWith");
+    //       if(d["owl:disjointWith"][0]!==undefined){//if property is array
+    //         d["owl:disjointWith"].forEach(function(x){
+    //           if(l.target["@id"]===x["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //         });
+    //       }else{
+    //           if(l.target["@id"]===d["rdfs:disjointWith"]["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //       }
+    //     }
+    //   }
+    //
+    // })
+    // .classed("link--equivalentClass", function(l){
+    //   if(d["owl:equivalentClass"]!==undefined){//is subclass of not undefined
+    //
+    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
+    //       console.log("equivalentClass");
+    //       if(d["owl:equivalentClass"][0]!==undefined){//if property is array
+    //         d["owl:equivalentClass"].forEach(function(x){
+    //           if(l.target["@id"]===x["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //         });
+    //       }else{
+    //           if(l.target["@id"]===d["rdfs:equivalentClass"]["@id"]){
+    //             return l.target.target = true;
+    //           }
+    //       }
+    //     }
+    //   }
+    // })
     .filter(function(l) {
       return l.target === d || l.source === d;
     })
@@ -430,6 +568,10 @@ function mouseouted(d) {
     .classed("node--inactive", false);
 }
 
+function isInArray(value, array) {
+  return array.indexOf(value) > -1;
+}
+
 //creates heirarchy
 function findNodes(tree, nodes) { //creates hierarchical tree from jsonld nodes
 
@@ -454,9 +596,7 @@ function findNodes(tree, nodes) { //creates hierarchical tree from jsonld nodes
 
 
 
-  function isInArray(value, array) {
-    return array.indexOf(value) > -1;
-  }
+
 
   function findChildren(name, n) { //recursive children finder function
     var node = map[name],
@@ -484,6 +624,7 @@ function findNodes(tree, nodes) { //creates hierarchical tree from jsonld nodes
       //if type is property
       if (!(type in map)) {
         //TODO if type is array (aka multiple types)
+
 
         node.parent = map["properties"];
         node.parent.children.push(node);
@@ -513,6 +654,8 @@ function findNodes(tree, nodes) { //creates hierarchical tree from jsonld nodes
 function getLinks(nodes) {
   var map = [],
     links = [];
+
+
   nodes.forEach(function(d) {
     if (d["@id"] !== undefined) {
       map[d["@id"]] = d;
@@ -548,77 +691,162 @@ function getLinks(nodes) {
       })
     }
 
-    if (d["rdfs:subClassOf"] !== undefined) {
-      if (Array.isArray(d.subClassOf)) {
-        d["rdfs:subClassOf"].forEach(function(x) {
-          var l = {};
-          l.source = map[d["@id"]];
-          l.target = map[x["@id"]];
+    properties.forEach(function(x){
+      findLinksForProp(x, d); //iterate over all properties in array
+    });
 
-          if (linkObjectEmpty(l)) {
-            links.push(l);
-          }
-        });
-      } else {
-        var l = {};
-        l.source = map[d["@id"]];
-        l.target = map[d["rdfs:subClassOf"]["@id"]];
-        if (linkObjectEmpty(l)) {
-          links.push(l);
-        }
-      }
-    }
+    // if (d["rdfs:subClassOf"] !== undefined) {
+    //   if (Array.isArray(d.subClassOf)) {
+    //     d["rdfs:subClassOf"].forEach(function(x) {
+    //       var l = {};
+    //       l.source = map[d["@id"]];
+    //       l.target = map[x["@id"]];
+    //       l.type = "subClassOf";
+    //
+    //       if (linkObjectEmpty(l)) {
+    //         links.push(l);
+    //       }
+    //     });
+    //   } else {
+    //     var l = {};
+    //     l.source = map[d["@id"]];
+    //     l.target = map[d["rdfs:subClassOf"]["@id"]];
+    //     l.type = "subClassOf";
+    //     if (linkObjectEmpty(l)) {
+    //       links.push(l);
+    //     }
+    //   }
+    // }
 
-    if (d["owl:equivalentClass"] !== undefined) {
-      var l = {};
-      l.source = map[d["@id"]];
-      l.target = map[d["owl:equivalentClass"]["@id"]];
-      if (linkObjectEmpty(l)) {
-        links.push(l);
-      }
-    }
+    // if (d["owl:equivalentClass"] !== undefined) {
+    //   var l = {};
+    //   l.source = map[d["@id"]];
+    //   l.target = map[d["owl:equivalentClass"]["@id"]];
+    //   l.type = "equivalentClass";
+    //   if (linkObjectEmpty(l)) {
+    //     links.push(l);
+    //   }
+    // }
 
-    if (d["owl:disjointWith"] !== undefined) {
-      if (Array.isArray(d["owl:disjointWith"])) {
-        d["owl:disjointWith"].forEach(function(x) {
-          var l = {};
-          l.source = map[d["@id"]];
-          l.target = map[x["@id"]];
-          if (linkObjectEmpty(l)) {
-            links.push(l);
-          }
-        });
-      } else {
-        var l = {};
-        l.source = map[d["@id"]];
-        l.target = map[d["owl:disjointWith"]];
-        if (linkObjectEmpty(l)) {
-          links.push(l);
-        }
-      }
-    }
 
-    if (d["rdfs:range"] !== undefined) {
-      if (Array.isArray(d["rdfs:range"])) { //pretty much always will be array, but this is just in case
-        d["rdfs:range"].forEach(function(x) {
-          var l = {};
-          l.source = map[d["@id"]];
-          l.target = map[x["@id"]];
-          if (linkObjectEmpty(l)) {
-            links.push(l);
-          }
-        });
-      } else {
-        var l = {};
-        l.source = map[d["@id"]];
-        l.target = map[d["rdfs:range"]["@id"]];
-        if (linkObjectEmpty(l)) {
-          links.push(l);
-        }
-      }
-    }
+    // findLinksForProp("owl:disjointWith", d);
+    // if (d["owl:disjointWith"] !== undefined) {
+    //   if (Array.isArray(d["owl:disjointWith"])) {
+    //     d["owl:disjointWith"].forEach(function(x) {
+    //       var l = {};
+    //       l.source = map[d["@id"]];
+    //       l.target = map[x["@id"]];
+    //       l.type = "disjointWith";
+    //       if (linkObjectEmpty(l)) {
+    //         links.push(l);
+    //       }
+    //     });
+    //   } else {
+    //     var l = {};
+    //     l.source = map[d["@id"]];
+    //     l.target = map[d["owl:disjointWith"]];
+    //     l.type = "disjointWith";
+    //     if (linkObjectEmpty(l)) {
+    //       links.push(l);
+    //     }
+    //   }
+    // }
+
+    // findLinksForProp("rdfs:range", d);
+    // if (d["rdfs:range"] !== undefined) {
+    //   if (Array.isArray(d["rdfs:range"])) { //pretty much always will be array, but this is just in case
+    //     d["rdfs:range"].forEach(function(x) {
+    //       var l = {};
+    //       l.source = map[d["@id"]];
+    //       l.target = map[x["@id"]];
+    //       l.type = "range";
+    //       if (linkObjectEmpty(l)) {
+    //         links.push(l);
+    //       }
+    //     });
+    //   } else {
+    //     var l = {};
+    //     l.source = map[d["@id"]];
+    //     l.target = map[d["rdfs:range"]["@id"]];
+    //     l.type = "range";
+    //     if (linkObjectEmpty(l)) {
+    //       links.push(l);
+    //     }
+    //   }
+    // }
+
+    // findLinksForProp("rdfs:domain", d);
+    // if (d["rdfs:domain"] !== undefined) {
+    //   if (Array.isArray(d["rdfs:domain"])) { //pretty much always will be array, but this is just in case
+    //     d["rdfs:domain"].forEach(function(x) {
+    //       var l = {};
+    //       l.source = map[d["@id"]];
+    //       l.target = map[x["@id"]];
+    //       l.type = "domain";
+    //       if (linkObjectEmpty(l)) {
+    //         links.push(l);
+    //       }
+    //     });
+    //   } else {
+    //     var l = {};
+    //     l.source = map[d["@id"]];
+    //     l.target = map[d["rdfs:domain"]["@id"]];
+    //     l.type = "domain";
+    //     if (linkObjectEmpty(l)) {
+    //       links.push(l);
+    //     }
+    //   }
+    // }
+
+    // if (d["owl:unionOf"] !== undefined) {
+    //   if (Array.isArray(d["owl:unionOf"])) { //pretty much always will be array, but this is just in case
+    //     d["owl:unionOf"]["@list"].forEach(function(x) {
+    //       var l = {};
+    //       l.source = map[d["@id"]];
+    //       l.target = map[x["@id"]];
+    //       l.type = "unionOf";
+    //       if (linkObjectEmpty(l)) {
+    //         links.push(l);
+    //       }
+    //     });
+    //   } else {
+    //     var l = {};
+    //     l.source = map[d["@id"]];
+    //     l.target = map[d["owl:unionOf"]["@id"]];
+    //     l.type = "unionOf";
+    //     if (linkObjectEmpty(l)) {
+    //       links.push(l);
+    //     }
+    //   }
+    // }
 
   });
+
+  //generic function for finding links between nodes using a property parameter
+  function findLinksForProp(prop, d){
+    if (d[prop] !== undefined) {
+      if (Array.isArray(d[prop])) { //pretty much always will be array, but this is just in case
+        d[prop].forEach(function(x) {
+          var l = {};
+          l.source = map[d["@id"]];
+          l.target = map[x["@id"]];
+          l.type = "range";
+          if (linkObjectEmpty(l)) {
+            links.push(l);
+          }
+        });
+      } else {
+        var l = {};
+        l.source = map[d["@id"]];
+        l.target = map[d[prop]["@id"]];
+        l.type = "range";
+        if (linkObjectEmpty(l)) {
+          links.push(l);
+        }
+      }
+    }
+  }
+
 
   function linkObjectEmpty(l) { //checks if both source and target are not empty
     if (l.source !== undefined && l.target !== undefined) {
@@ -627,6 +855,7 @@ function getLinks(nodes) {
       return false;
     }
   }
+  console.log(links);
   return links;
 }
 
@@ -710,4 +939,86 @@ function animationtest(d) {
     .duration(2000)
     .attr("transform", "translate(50, 50)");
 
+}
+
+//source http://stackoverflow.com/questions/1720320/how-to-dynamically-create-css-class-in-javascript-and-apply
+function createCSSSelector(selector, style)
+{
+ if (!document.styleSheets) {return;}
+
+ if (document.getElementsByTagName('head').length == 0) {return;}
+
+ var stylesheet,mediaType;
+
+ if (document.styleSheets.length > 0)
+ {
+  for (i = 0; i < document.styleSheets.length; i++)
+  {
+   if (document.styleSheets[i].disabled) {continue;}
+   var media = document.styleSheets[i].media;
+   mediaType = typeof media;
+
+   if (mediaType=='string')
+   {
+    if (media=='' || (media.indexOf('screen')!=-1))
+    {
+     styleSheet = document.styleSheets[i];
+    }
+   }
+   else if (mediaType=='object')
+   {
+    if (media.mediaText=='' || (media.mediaText.indexOf('screen')!=-1))
+    {
+     styleSheet = document.styleSheets[i];
+    }
+   }
+
+   if (typeof styleSheet!='undefined') {break;}
+  }
+ }
+
+ if (typeof styleSheet=='undefined')
+ {
+  var styleSheetElement = document.createElement('style');
+  styleSheetElement.type = 'text/css';
+  document.getElementsByTagName('head')[0].appendChild(styleSheetElement);
+
+  for (i = 0; i < document.styleSheets.length; i++)
+  {
+   if (document.styleSheets[i].disabled) {continue;}
+   styleSheet = document.styleSheets[i];
+  }
+
+  var media = styleSheet.media;
+  mediaType = typeof media;
+ }
+
+ if (mediaType=='string')
+ {
+  for (i = 0; i < styleSheet.rules.length; i++)
+  {
+   if(styleSheet.rules[i].selectorText && styleSheet.rules[i].selectorText.toLowerCase()==selector.toLowerCase())
+   {
+    styleSheet.rules[i].style.cssText = style;
+    return;
+   }
+  }
+
+  styleSheet.addRule(selector,style);
+ }
+ else if (mediaType=='object')
+ {
+  var styleSheetLength = (styleSheet.cssRules) ? styleSheet.cssRules.length : 0;
+
+  for (i = 0; i < styleSheetLength; i++)
+  {
+   if (styleSheet.cssRules[i].selectorText && styleSheet.cssRules[i].selectorText.toLowerCase() == selector.toLowerCase())
+   {
+    styleSheet.cssRules[i].style.cssText = style;
+    return;
+   }
+  }
+
+  styleSheet.insertRule(selector + '{' + style + '}', styleSheetLength);
+ }
 }

@@ -83,6 +83,7 @@ html, body, .container-table {
     .node:hover {
         fill: #000;
         opacity: 1;
+        font-size: 100%;
         /*fill:#2ca02c;*/
     }
 
@@ -111,10 +112,12 @@ html, body, .container-table {
     .node--source {
         fill: #2ca02c;
         font-weight: 700;
+        font-size: 100%;
     }
 
     .node--target {
         fill: #d62728;
+        font-size: 100%;
     }
 
     .node--inactive{
@@ -168,14 +171,36 @@ html, body, .container-table {
     .link--active,
     .link--inactive,
     .link--source,
-    .link--target {
+    .link--subClassOf,
+    .link--equivalentClass,
+    .link--disjointWith,
+    .link--domain,
+    .link--range {
         stroke-opacity: 1;
         stroke-width: 2px;
         animation-duration: 1s;
         animation-name: fade;
     }
 
+    /*.link--subClassOf{
+      stroke: #6959A2;
+    }
 
+    .link--disjointWith{
+      stroke: #811478;
+    }
+
+    .link--equivalentClass{
+      stroke: #B47777;
+    }
+
+    .link--range{
+      stroke: #103D51;
+    }
+
+    .link--domain{
+      stroke: #C39A3C;
+    }*/
 
     .link--source {
         stroke: #d62728;
