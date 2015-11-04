@@ -77,6 +77,19 @@ function isUrl(s) {
 //on uri submission
 $("#uriSubmit").click(function() {
   uriInput = $("#uriInput").val();
+  uriSubmitCallback();
+});
+
+$('#uriInput').keypress(function (e) {
+ var key = e.which;
+ if(key == 13)  // the enter key code
+  {
+    uriInput = $("#uriInput").val();
+    uriSubmitCallback();
+  }
+});
+
+function uriSubmitCallback(){
   if (uriInput !== undefined && uriInput !== "" && isUrl(uriInput)) {
     $("#uriForm").fadeOut();
     $("#searchLink").fadeIn("slow");
@@ -88,7 +101,7 @@ $("#uriSubmit").click(function() {
     var l = '<div class="alert alert-warning" role="alert">Incorrect Input!</div>';
     $(l).appendTo(".loadingBar");
   }
-});
+}
 
 //reload page of clicking search
 $("#searchLink").click(function() {
@@ -292,7 +305,7 @@ function draw(rGraph) {
       mouseovered(d);
     })
     .on("mouseout", function(d) {
-      mouseouted(d);
+      // mouseouted(d);
     })
     .on("mousedown", function(d) {
       rotate(d, createToolTip);
@@ -352,17 +365,10 @@ function createToolTip(d) {
   //get list of active properties
   for(var i=0;i<nodeProps.length;i++){
     if(isInArray(nodeProps[i], properties)){
-      // console.log(nodeProps[i]);
       activeProps.push(nodeProps[i]);
     }
   }
-  // console.log(activeProps);
 
-
-
-  // console.log(page_width);
-  // console.log(activeProps);
-  // console.log(d);
   var xPosition = cursorX; //parseFloat(d3.select(this).attr("x")) + xScale.rangeBand() / 2;
   var yPosition = cursorY; //parseFloat(d3.select(this).attr("y")) / 2 + h / 2;
   var props = [];
@@ -373,10 +379,11 @@ function createToolTip(d) {
     console.log("ARRAY");
   }
 
+
   if (d["rdfs:comment"] !== undefined) {
     comment = d["rdfs:comment"]["@value"];
   } else {
-    comment = "...";
+    comment = "No comment available :(  ";
   }
   //Update the tooltip position and value
 
@@ -395,7 +402,15 @@ function createToolTip(d) {
 
         if (Array.isArray(d[prop])) {
           for (var x in d[prop]) {
-            list_props += "<br>" + ' ' + d[prop][x]["@id"];
+            console.log(  d[prop][x]);
+
+            if(d[prop][x]["@value"]!==undefined){
+              list_props += "<br>"+ ' ' + d[prop][x]["@value"];//for special snowflakes
+            }else if(d[prop][x]["@id"]!==undefined){
+              list_props += "<br>" + ' ' + d[prop][x]["@id"];
+            }else if(d[prop][x] !== undefined){
+              list_props += "<br>" + ' ' + d[prop][x];
+            }
           }
         } else if (typeof d[prop] === 'object') {
           for (var p in d[prop]) {
@@ -404,34 +419,29 @@ function createToolTip(d) {
             }
           }
         } else {
-
           list_props = d[prop];
-
         }
 
         var t;
 
         if(isInArray(prop, activeProps)){
-
-
           var c = function(){
             var rc;
             colorPairs.forEach(function(l){
                 if(prop === l.propfull){
                   // console.log(l.color)
                   rc = l.color;
-
                 }
             });
             return rc;
           };
 
-          var color = c();
+          var color = c();//cannot call anonymous function below
 
           t = '<li class="list-group-item" style="background-color:'+color+';" ><div><h5><b>' + prop + '</h5>' + list_props + '</b> </div></li>';
           console.log("prop active");
         }else{
-          t = '<li class="list-group-item"><h5>' + prop + '</h5>' + list_props + '</li>';
+          t = '<li class="list-group-item"><h4>' + prop + '</h4>' + list_props + '</li>';
         }
         // var t = '<li class="list-group-item"><h5>' + prop + '</h4>' + list_props + '</li>';
         ls += t;
