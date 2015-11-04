@@ -12,13 +12,16 @@
 	opacity: 0.8;
 }
 
-.nodeinfo{
+#tooltip{
 	opacity: 0.8;
-	overflow-y: scroll;
-	height: 400px;
+	/*overflow-y: scroll;*/
+  height: 400px;
+  width: 33%;
+  padding: 10px;
+	/*height: 400px;*/
 }
 
- #tooltip 	{
+ /*#tooltip 	{
         position: absolute;
         width: 33%;
         height: 50%;
@@ -30,10 +33,10 @@
         /*-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);*/
         /*-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);*/
         /*box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.4);*/
-        pointer-events: none;
-}
+        /*pointer-events: none;*/
+}*/
 
-#tooltip.hidden {
+/*#tooltip.hidden {
         display: none;
 }
 
@@ -41,7 +44,7 @@
         margin: 0;
         font: 300 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
         line-height: 20px;
-}
+}*/
 
 
 

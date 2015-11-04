@@ -23,10 +23,10 @@ var bundle;
 var line;
 var svg;
 var link; //D3 RELATED VARIABLES
-  var properties = ["rdfs:range", "rdfs:domain", "rdf:type", "rdfs:subClassOf", "rdfs:subPropertyOf", "rdfs:label", "rdfs:subPropertyOf", "rdfs:comment", "owl:equivalentClass", "rdfs:subClassOf", "owl:disjointWith", "owl:complementOf", "owl:unionOf", "owl:intersectionOf",  "owl:equivalentProperty", "owl:inverseOf", "owl:sameAs", "owl:differentFrom", "owl:AllDifferent"];
-  var colors = [];
-  var propertiesMinusPrefix = [];
-  var colorPairs = [];
+var properties = ["rdfs:range", "rdfs:domain", "rdf:type", "rdfs:subClassOf", "rdfs:subPropertyOf", "rdfs:subPropertyOf",  "owl:equivalentClass", "rdfs:subClassOf", "owl:disjointWith", "owl:complementOf", "owl:unionOf", "owl:intersectionOf", "owl:equivalentProperty", "owl:inverseOf", "owl:sameAs", "owl:differentFrom", "owl:AllDifferent"];
+var colors = [];
+var propertiesMinusPrefix = [];
+var colorPairs = [];
 
 
 
@@ -35,24 +35,39 @@ document.onmousemove = function(e) {
   cursorY = e.pageY;
 }
 
-//generates random collors for links
-function createCSSRules(){
+function selectColor(colorNum, colors) {
+  if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
+  return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
+}
 
-  properties.forEach(function(d){
-    var c = '#'+Math.floor(Math.random()*16777215).toString(16);
+//generates random collors for links
+function createCSSRules() {
+
+  properties.forEach(function(d) {
+    var c;
+    c = selectColor(Math.floor(Math.random() * 999), properties.length);
     colors.push(c);
   });
 
-  properties.forEach(function(d, i){
+  var pos = 0;
+
+  properties.forEach(function(d, i) {
     var n = d.substring(d.indexOf(":") + 1);
     propertiesMinusPrefix.push(n);
-    var l = {prop: n, color: colors[i], propfull: d};
+    pos += 15;
+    var l = {
+      prop: n,
+      color: colors[i],
+      propfull: d,
+      pos: pos
+    };
     colorPairs.push(l);
-    createCSSSelector('.'+n, 'stroke:'+colors[i]+';stroke-width:'+strokewidth+'px;');
+    createCSSSelector('.' + n, 'stroke:' + colors[i] + ';stroke-width:' + strokewidth + 'px;stroke-opacity:0.4;');
   });
 }
 
 createCSSRules();
+// createLegend();
 
 function isUrl(s) {
   var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
@@ -93,7 +108,10 @@ function findRoot(graph) {
     // throw 'NoRoot'; //temp
     //maybe add a temp root to data array? eg root = uri
     root = uriInput;
-    var l = {"@id": uriInput, children: []};
+    var l = {
+      "@id": uriInput,
+      children: []
+    };
     graph.push(l);
   }
 }
@@ -184,11 +202,11 @@ function draw(rGraph) {
   var nodes = cluster.nodes(t),
     links = cluster.links(nodes);
 
-    nodes.forEach(function(d){
-      if(d["rdfs:domain"]!==undefined){
-        console.log(d);
-      }
-    })
+  nodes.forEach(function(d) {
+    if (d["rdfs:domain"] !== undefined) {
+      console.log(d);
+    }
+  })
 
   var d = links.concat(lt);
 
@@ -279,6 +297,7 @@ function draw(rGraph) {
     .on("mousedown", function(d) {
       rotate(d, createToolTip);
       highlightData(d);
+      createLegend(d);
     });
 }
 
@@ -302,10 +321,9 @@ function createtree(tree, tooltip, data) {
   }
 }
 
-function isArray(object)
-{
-    if (object.constructor === Array) return true;
-    else return false;
+function isArray(object) {
+  if (object.constructor === Array) return true;
+  else return false;
 }
 
 //creates info div
@@ -313,15 +331,38 @@ function createToolTip(d) {
   ///textboox source http://chimera.labs.oreilly.com/books/1230000000345/ch10.html#_html_div_tooltips
   //Get this bar's x/y values, then augment for the tooltip
   d3.select("#tooltip").remove();
+  // $(".tooltipsgohere").empty();
 
   var p_div_height = document.getElementById('dia_1').clientHeight;
   var pDivWidth = document.getElementById('dia_1').clientWidth;
 
   var page_width = $(window).width();
   var page_height = $(window).height();
-  // console.log(page_width);
 
-  console.log(d);
+  var nodeProps = [];
+  var activeProps = [];
+
+  //put all properties on object into array
+  for (var property in d) {
+    if (d.hasOwnProperty(property)) {
+      nodeProps.push(property);
+    }
+  }
+
+  //get list of active properties
+  for(var i=0;i<nodeProps.length;i++){
+    if(isInArray(nodeProps[i], properties)){
+      // console.log(nodeProps[i]);
+      activeProps.push(nodeProps[i]);
+    }
+  }
+  // console.log(activeProps);
+
+
+
+  // console.log(page_width);
+  // console.log(activeProps);
+  // console.log(d);
   var xPosition = cursorX; //parseFloat(d3.select(this).attr("x")) + xScale.rangeBand() / 2;
   var yPosition = cursorY; //parseFloat(d3.select(this).attr("y")) / 2 + h / 2;
   var props = [];
@@ -349,7 +390,7 @@ function createToolTip(d) {
         comment = d[prop]["@value"];
         // console.log(d[prop]);
       }
-      if (prop !== 'clicked' && prop !== 'parent' && prop !== 'depth' && prop !== 'x' && prop !== 'y' && prop !== 'angle' && prop !== 'side' && prop !== 'source' && prop !== 'target' && prop !== 'value' && prop != 'rdfs:comment' && prop !== 'children') { //excude d3 & customer properties
+      if (prop !== 'linksActive' && prop !== 'clicked' && prop !== 'parent' && prop !== 'depth' && prop !== 'x' && prop !== 'y' && prop !== 'angle' && prop !== 'side' && prop !== 'source' && prop !== 'target' && prop !== 'value' && prop != 'rdfs:comment' && prop !== 'children') { //excude d3 & customer properties
         var list_props = ' ';
 
         if (Array.isArray(d[prop])) {
@@ -367,7 +408,32 @@ function createToolTip(d) {
           list_props = d[prop];
 
         }
-        var t = '<li class="list-group-item"><h5>' + prop + '</h4>' + list_props + '</li>';
+
+        var t;
+
+        if(isInArray(prop, activeProps)){
+
+
+          var c = function(){
+            var rc;
+            colorPairs.forEach(function(l){
+                if(prop === l.propfull){
+                  // console.log(l.color)
+                  rc = l.color;
+
+                }
+            });
+            return rc;
+          };
+
+          var color = c();
+
+          t = '<li class="list-group-item" style="background-color:'+color+';" ><div><h5><b>' + prop + '</h5>' + list_props + '</b> </div></li>';
+          console.log("prop active");
+        }else{
+          t = '<li class="list-group-item"><h5>' + prop + '</h5>' + list_props + '</li>';
+        }
+        // var t = '<li class="list-group-item"><h5>' + prop + '</h4>' + list_props + '</li>';
         ls += t;
         props.push(prop);
       }
@@ -382,9 +448,10 @@ function createToolTip(d) {
     comment = s;
   }
 
-  var tooltip = '<div id="tooltip" class="hidden"><div class="page-header"><h3>' + d["@id"] + '</h3><div class="info"><p><small>' + comment + '</small></p></div><div class="nodeinfo"><ul class="list-group">' + ls + '</ul></div>';
+  var tooltip = '<div id="tooltip"><div class="page-header"><h3 >' + d["@id"] + '</h3><div class="info"><p><small>' + comment + '</small></p></div><div class="nodeinfo"><ul class="list-group" style="height:300px;overflow-y: scroll;">' + ls + '</ul></div>';
 
-  $(".tooltipsgohere").append(tooltip);
+  // $(tooltip).appendTo(".tooltipsgohere");
+  $( tooltip ).appendTo( ".tooltipsgohere" );
   var div_pos;
   if (d.side === "right") {
     div_pos = page_width - (page_width / 3);
@@ -400,10 +467,47 @@ function createToolTip(d) {
 
   //Show the tooltip
   d3.select("#tooltip").classed("hidden", false);
+  // $(tooltip).appendTo(".tooltipsgohere");
   $("#tooltip").hide().fadeIn(animation_duration);
+
+    // $()
+
+  //callback add to end of transision above?
+  // createLegend(d);
+
+}
+
+function createLegend(d) {
+
+
+
+  // console.log(nodeProps);
+  // var svgLegend = d3.select(".legend").append("svg")
+  //   .attr("width", 200)
+  //   .attr("height", 200);
+  //
+  // var lines = svgLegend.selectAll("line")
+  //   .data(colorPairs)
+  //   .enter()
+  //   .append("line");
+  //
+  // var lineattr = lines
+  //   .attr("x1", 5)
+  //   .attr("y1", function(d) {
+  //     return d.pos;
+  //   })
+  //   .attr("x2", 195)
+  //   .attr("y2", function(d) {
+  //     return d.pos;
+  //   })
+  //   .attr("stroke-width", strokewidth)
+  //   .attr("stroke", function(d) {
+  //     return d.color;
+  //   });
 
 
 }
+
 
 //on mouseover highlight links and nodes
 function mouseovered(d) {
@@ -413,120 +517,46 @@ function mouseovered(d) {
       n.target = n.source = false;
     });
 
-    colorPairs.forEach(function(x){
-      var propfull = x.propfull;
-      var color = x.color;
-      var propnoprefix = x.prop;
+  //iterate over all colorpairs, and add link classes dynamically.
+  colorPairs.forEach(function(x) {
+    var propfull = x.propfull;
+    var color = x.color;
+    var propnoprefix = x.prop;
 
-      link.classed(propnoprefix, function(l){
-        if(d[propfull]!==undefined){
-            if(l.source["@id"] === d["@id"]){
-              // console.log(d);
-              if(l.target["@id"]===d[propfull]["@id"]){
-                console.log(propfull);
-                return l.target.target = true;
-              }
+    link.classed(propnoprefix, function(l) {
+      if (d[propfull] !== undefined) {
+        if (l.source["@id"] === d["@id"]) {
+          // console.log(d);
+          if (l.target["@id"] === d[propfull]["@id"]) {
+            // console.log(propfull);
+            if (d.linksActive === undefined) {
+              d.linksActive = [];
+            } else {
+              d.linksActive.push(propfull);
             }
+            return l.target.target = true;
           }
-      });
+        }
+      }
     });
+  });
 
   link
-    // .classed("link--target", function(l) {
-    //   if (l.target === d) {
-    //     return l.source.source = true;
-    //   }
-    // })
-    // .classed("link--source", function(l) {
-    //   if (l.source === d) {
-    //     return l.target.target = true;
-    //   }
-    // })
-    // .classed("link--inactive", function(l) {
-    //   if (l.source !== d && l.target !== d) {
-    //     return l = true;
-    //   }
-    // })
-    // .classed("link--domain", function(l){
-    //   // console.log(l);+
-    //   if(d["rdfs:domain"]!==undefined){
-    //     if(l.source["@id"] === d["@id"]){
-    //       // console.log(d);
-    //       if(l.target["@id"]===d["rdfs:domain"]["@id"]){
-    //         console.log("DOMAIN");
-    //         return l.target.target = true;
-    //       }
-    //     }
-    //   }
-    // })
-    // .classed("link--range", function(l){
-    //   if(d["rdfs:range"]!==undefined){
-    //     if(l.source["@id"] === d["@id"]){
-    //       // console.log(d);
-    //       if(l.target["@id"]===d["rdfs:range"]["@id"]){
-    //         console.log("RANGE");
-    //         return l.target.target = true;
-    //       }
-    //     }
-    //   }
-    // })
-    // .classed("link--subClassOf", function(l){
-    //   if(d["rdfs:subClassOf"]!==undefined){//is subclass of not undefined
-    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
-    //         // console.log(d);
-    //       if(d["rdfs:subClassOf"][0]!==undefined){//if property is array
-    //         d["rdfs:subClassOf"].forEach(function(x){
-    //           if(l.target["@id"]===x["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //         });
-    //       }else{
-    //           if(l.target["@id"]===d["rdfs:subClassOf"]["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //       }
-    //     }
-    //   }
-    // })
-    // .classed("link--disjointWith", function(l){
-    //   if(d["owl:disjointWith"]!==undefined){//is subclass of not undefined
-    //
-    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
-    //       console.log("disjointWith");
-    //       if(d["owl:disjointWith"][0]!==undefined){//if property is array
-    //         d["owl:disjointWith"].forEach(function(x){
-    //           if(l.target["@id"]===x["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //         });
-    //       }else{
-    //           if(l.target["@id"]===d["rdfs:disjointWith"]["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //       }
-    //     }
-    //   }
-    //
-    // })
-    // .classed("link--equivalentClass", function(l){
-    //   if(d["owl:equivalentClass"]!==undefined){//is subclass of not undefined
-    //
-    //     if(l.source["@id"] === d["@id"]){//if link source === current mouseover
-    //       console.log("equivalentClass");
-    //       if(d["owl:equivalentClass"][0]!==undefined){//if property is array
-    //         d["owl:equivalentClass"].forEach(function(x){
-    //           if(l.target["@id"]===x["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //         });
-    //       }else{
-    //           if(l.target["@id"]===d["rdfs:equivalentClass"]["@id"]){
-    //             return l.target.target = true;
-    //           }
-    //       }
-    //     }
-    //   }
-    // })
+    .classed("link--target", function(l) {
+      if (l.target === d) {
+        return l.source.source = true;
+      }
+    })
+    .classed("link--source", function(l) {
+      if (l.source === d) {
+        return l.target.target = true;
+      }
+    })
+    .classed("link--inactive", function(l) {
+      if (l.source !== d && l.target !== d) {
+        return l = true;
+      }
+    })
     .filter(function(l) {
       return l.target === d || l.source === d;
     })
@@ -556,6 +586,8 @@ function mouseovered(d) {
 
 //on mouse out
 function mouseouted(d) {
+
+  // d.linksActive = [];
 
   link
     .classed("link--target", false)
@@ -691,7 +723,7 @@ function getLinks(nodes) {
       })
     }
 
-    properties.forEach(function(x){
+    properties.forEach(function(x) {
       findLinksForProp(x, d); //iterate over all properties in array
     });
 
@@ -823,10 +855,11 @@ function getLinks(nodes) {
   });
 
   //generic function for finding links between nodes using a property parameter
-  function findLinksForProp(prop, d){
+  function findLinksForProp(prop, d) {
     if (d[prop] !== undefined) {
-      if (Array.isArray(d[prop])) { //pretty much always will be array, but this is just in case
-        d[prop].forEach(function(x) {
+
+      if(d[prop]["@list"]!==undefined){//if @list exists
+        d[prop]["@list"].forEach(function(x){
           var l = {};
           l.source = map[d["@id"]];
           l.target = map[x["@id"]];
@@ -835,6 +868,18 @@ function getLinks(nodes) {
             links.push(l);
           }
         });
+
+      }else if (Array.isArray(d[prop])) { //pretty much always will be array, but this is just in case
+          d[prop].forEach(function(x) {//if pure array
+            var l = {};
+            l.source = map[d["@id"]];
+            l.target = map[x["@id"]];
+            l.type = "range";
+            if (linkObjectEmpty(l)) {
+              links.push(l);
+            }
+          });
+
       } else {
         var l = {};
         l.source = map[d["@id"]];
@@ -942,83 +987,76 @@ function animationtest(d) {
 }
 
 //source http://stackoverflow.com/questions/1720320/how-to-dynamically-create-css-class-in-javascript-and-apply
-function createCSSSelector(selector, style)
-{
- if (!document.styleSheets) {return;}
-
- if (document.getElementsByTagName('head').length == 0) {return;}
-
- var stylesheet,mediaType;
-
- if (document.styleSheets.length > 0)
- {
-  for (i = 0; i < document.styleSheets.length; i++)
-  {
-   if (document.styleSheets[i].disabled) {continue;}
-   var media = document.styleSheets[i].media;
-   mediaType = typeof media;
-
-   if (mediaType=='string')
-   {
-    if (media=='' || (media.indexOf('screen')!=-1))
-    {
-     styleSheet = document.styleSheets[i];
-    }
-   }
-   else if (mediaType=='object')
-   {
-    if (media.mediaText=='' || (media.mediaText.indexOf('screen')!=-1))
-    {
-     styleSheet = document.styleSheets[i];
-    }
-   }
-
-   if (typeof styleSheet!='undefined') {break;}
-  }
- }
-
- if (typeof styleSheet=='undefined')
- {
-  var styleSheetElement = document.createElement('style');
-  styleSheetElement.type = 'text/css';
-  document.getElementsByTagName('head')[0].appendChild(styleSheetElement);
-
-  for (i = 0; i < document.styleSheets.length; i++)
-  {
-   if (document.styleSheets[i].disabled) {continue;}
-   styleSheet = document.styleSheets[i];
-  }
-
-  var media = styleSheet.media;
-  mediaType = typeof media;
- }
-
- if (mediaType=='string')
- {
-  for (i = 0; i < styleSheet.rules.length; i++)
-  {
-   if(styleSheet.rules[i].selectorText && styleSheet.rules[i].selectorText.toLowerCase()==selector.toLowerCase())
-   {
-    styleSheet.rules[i].style.cssText = style;
+function createCSSSelector(selector, style) {
+  if (!document.styleSheets) {
     return;
-   }
   }
 
-  styleSheet.addRule(selector,style);
- }
- else if (mediaType=='object')
- {
-  var styleSheetLength = (styleSheet.cssRules) ? styleSheet.cssRules.length : 0;
-
-  for (i = 0; i < styleSheetLength; i++)
-  {
-   if (styleSheet.cssRules[i].selectorText && styleSheet.cssRules[i].selectorText.toLowerCase() == selector.toLowerCase())
-   {
-    styleSheet.cssRules[i].style.cssText = style;
+  if (document.getElementsByTagName('head').length == 0) {
     return;
-   }
   }
 
-  styleSheet.insertRule(selector + '{' + style + '}', styleSheetLength);
- }
+  var stylesheet, mediaType;
+
+  if (document.styleSheets.length > 0) {
+    for (i = 0; i < document.styleSheets.length; i++) {
+      if (document.styleSheets[i].disabled) {
+        continue;
+      }
+      var media = document.styleSheets[i].media;
+      mediaType = typeof media;
+
+      if (mediaType == 'string') {
+        if (media == '' || (media.indexOf('screen') != -1)) {
+          styleSheet = document.styleSheets[i];
+        }
+      } else if (mediaType == 'object') {
+        if (media.mediaText == '' || (media.mediaText.indexOf('screen') != -1)) {
+          styleSheet = document.styleSheets[i];
+        }
+      }
+
+      if (typeof styleSheet != 'undefined') {
+        break;
+      }
+    }
+  }
+
+  if (typeof styleSheet == 'undefined') {
+    var styleSheetElement = document.createElement('style');
+    styleSheetElement.type = 'text/css';
+    document.getElementsByTagName('head')[0].appendChild(styleSheetElement);
+
+    for (i = 0; i < document.styleSheets.length; i++) {
+      if (document.styleSheets[i].disabled) {
+        continue;
+      }
+      styleSheet = document.styleSheets[i];
+    }
+
+    var media = styleSheet.media;
+    mediaType = typeof media;
+  }
+
+  if (mediaType == 'string') {
+    for (i = 0; i < styleSheet.rules.length; i++) {
+      if (styleSheet.rules[i].selectorText && styleSheet.rules[i].selectorText.toLowerCase() == selector.toLowerCase()) {
+        styleSheet.rules[i].style.cssText = style;
+        return;
+      }
+    }
+
+    styleSheet.addRule(selector, style);
+  } else if (mediaType == 'object') {
+    var styleSheetLength = (styleSheet.cssRules) ? styleSheet.cssRules.length : 0;
+
+    for (i = 0; i < styleSheetLength; i++) {
+      if (styleSheet.cssRules[i].selectorText && styleSheet.cssRules[i].selectorText.toLowerCase() == selector.toLowerCase()) {
+        styleSheet.cssRules[i].style.cssText = style;
+        return;
+      }
+    }
+
+    styleSheet.insertRule(selector + '{' + style + '}', styleSheetLength);
+  }
 }
