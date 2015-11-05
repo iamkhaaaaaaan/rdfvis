@@ -25,5 +25,5 @@ The properties which are shown in links are the following:
 
 var properties = ["rdfs:range", "rdfs:domain", "rdf:type", "rdfs:subClassOf", "rdfs:subPropertyOf", "rdfs:subPropertyOf",  "owl:equivalentClass", "rdfs:subClassOf", "owl:disjointWith", "owl:complementOf", "owl:unionOf", "owl:intersectionOf", "owl:equivalentProperty", "owl:inverseOf", "owl:sameAs", "owl:differentFrom", "owl:AllDifferent"];
 
-Properties can be added to this array and be tracked and displayed with any extra code. 
+Properties can be added to this array and be tracked and displayed without any extra code. 
 
