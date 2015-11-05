@@ -7,9 +7,11 @@ A unqique way to look at RDF/OWL vocabs using D3.js. This visualisation works by
 Currently Tested and working with Chrome v46.
 
 
-![Alt text](http://i.imgur.com/9N6ib68.png "..."
-![Alt text](http://i.imgur.com/zr1Dehs.png "..."
-![Alt text](http://i.imgur.com/4xaxJV3.png "..."
+![Alt text](http://i.imgur.com/9N6ib68.png "...")
+
+![Alt text](http://i.imgur.com/zr1Dehs.png "...")
+
+![Alt text](http://i.imgur.com/4xaxJV3.png "...")
 
 The edge_bundle.js file relies on:
 index.ejs (in the views folder) for insertion of divs, but this can be easily changed
